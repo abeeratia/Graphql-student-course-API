@@ -9,10 +9,8 @@ import Student from "./models/student.js";
 
 dotenv.config();
 
-//& ========== In-Memory Users ==========
 let users = [];
 
-//& ========== JWT Helper ==========
 const createToken = (user) =>
   jwt.sign({ id: user.id, email: user.email }, process.env.SECRET_KEY, {
     expiresIn: "7d",
@@ -28,7 +26,6 @@ const getUserFromToken = (authHeader) => {
   }
 };
 
-//& ========== GraphQL Schema ==========
 const typeDefs = gql`
   type User {
     id: ID!
@@ -117,27 +114,22 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    # Auth
     signup(email: String!, password: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
 
-    # Students
     addStudent(input: StudentInput!): Student!
     updateStudent(id: ID!, input: StudentUpdateInput!): Student!
     deleteStudent(id: ID!): Boolean!
 
-    # Courses
     addCourse(input: CourseInput!): Course!
     updateCourse(id: ID!, input: CourseUpdateInput!): Course!
     deleteCourse(id: ID!): Boolean!
 
-    # Enrollments
     enrollStudent(studentId: ID!, courseId: ID!): Student!
     unenrollStudent(studentId: ID!, courseId: ID!): Student!
   }
 `;
 
-//& ========== Resolvers ==========
 const resolvers = {
   Query: {
     getAllStudents: async (_, { filter, options }) => {
@@ -202,7 +194,6 @@ const resolvers = {
   },
 
   Mutation: {
-    //& ====== Auth ======
     signup: async (_, { email, password }) => {
       const existing = users.find(
         (u) => u.email.toLowerCase() === email.toLowerCase()
@@ -265,13 +256,11 @@ const resolvers = {
       const student = await Student.findById(id);
       if (!student) return false;
 
-      //& remove enrollments
       await Course.updateMany({}, { $pull: { students: id } });
       await student.deleteOne();
       return true;
     },
 
-    //& ====== Courses ======
     addCourse: async (_, { input }, { user }) => {
       if (!user) throw new Error("UNAUTHENTICATED");
 
@@ -307,7 +296,6 @@ const resolvers = {
       return true;
     },
 
-    //& ====== Enrollment ======
     enrollStudent: async (_, { studentId, courseId }, { user }) => {
       if (!user) throw new Error("UNAUTHENTICATED");
 
@@ -351,7 +339,6 @@ const resolvers = {
   },
 };
 
-//& ========== Server Setup ==========
 const startServer = async () => {
   await mongoose.connect("mongodb://127.0.0.1:27017/graphql-lab-day2");
   console.log("✅ MongoDB Connected");
